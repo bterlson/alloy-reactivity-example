@@ -1,0 +1,44 @@
+{
+  "name": "alloy-reactivity",
+  "version": "1.0.0",
+  "author": "",
+  "description": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@alloy-js/core": "0.7.0",
+    "@alloy-js/typescript": "0.7.0"
+  },
+  "devDependencies": {
+    "@alloy-js/babel-plugin": "0.2.0",
+    "@babel/cli": "^7.24.7",
+    "@babel/preset-typescript": "^7.24.7",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.14.12",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
+  },
+  "scripts": {
+    "build-src": "babel src -d dist/src --extensions .ts,.tsx",
+    "build-tsc": "tsc -p .",
+    "build": "npm run build-tsc && npm run build-src",
+    "clean": "rimraf dist/ .temp/",
+    "test": "vitest run",
+    "test:watch": "vitest -w",
+    "watch-src": "babel src -d dist/src --extensions '.ts,.tsx' --watch",
+    "watch-tsc": "tsc -p . --watch",
+    "watch": "concurrently --kill-others \"npm run watch-tsc\" \"npm run watch-src\""
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./stc": {
+      "import": "./dist/src/stc.js",
+      "types": "./dist/src/stc.d.ts"
+    }
+  }
+}
