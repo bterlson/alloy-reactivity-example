@@ -1,13 +1,23 @@
 // of course, something like this works...
 
 import {
+  Block,
   Children,
+  computed,
+  effect,
   For,
   List,
+  Match,
+  memo,
+  onCleanup,
   Output,
   reactive,
+  ref,
+  Ref,
+  Refkey,
   refkey,
   StatementList,
+  Switch,
 } from "@alloy-js/core";
 import {
   InterfaceDeclaration,
@@ -87,6 +97,88 @@ print(
     </SourceFile>
     <SourceFile path="refs.ts">
       <DefAndRefThings />
+    </SourceFile>
+  </Output>
+);
+
+// or more advanced things
+function createDeclarationStore() {
+  const refCounts = new WeakMap<Refkey, Ref<number>>();
+  const declarations: Map<Refkey, Children> = reactive(new Map()) as any;
+
+  function InlineOrReference({ refkey }: any) {
+    if (!refCounts.has(refkey)) {
+      // initialize reactives for this decl
+      refCounts.set(refkey, ref(0));
+
+      // compute whether we need a decl
+      const needsDecl = computed(() => refCounts.get(refkey)!.value > 1);
+
+      // effect is run when needsDecl changes
+      effect(() => {
+        if (needsDecl.value) {
+          declarations.set(
+            refkey,
+            <InterfaceDeclaration name="iface" refkey={refkey} />
+          );
+        } else {
+          declarations.delete(refkey);
+        }
+      });
+    }
+
+    // get the ref for the ref count
+    const refCount = refCounts.get(refkey)!;
+    refCount.value++;
+
+    // decrement count when the component is unmounted
+    onCleanup(() => {
+      refCount.value--;
+    });
+
+    return (
+      <Switch>
+        <Match when={refCount.value < 2}>
+          <Block>Inline declaration</Block>
+        </Match>
+        <Match else>{refkey}</Match>
+      </Switch>
+    );
+  }
+
+  return {
+    declarations: computed(() => [...declarations.values()]),
+    InlineOrReference,
+  };
+}
+
+const { declarations, InlineOrReference } = createDeclarationStore();
+console.log("=== inline or reference ===");
+print(
+  <Output>
+    <SourceFile path="decls.ts">
+      <For each={declarations} hardline>
+        {(decl) => decl}
+      </For>
+    </SourceFile>
+    <SourceFile path="refs.ts">
+      <StatementList>
+        <VarDeclaration
+          name="v1"
+          type={<InlineOrReference refkey={r1} />}
+          value="{}"
+        />
+        <VarDeclaration
+          name="v2"
+          type={<InlineOrReference refkey={r2} />}
+          value="{}"
+        />
+        <VarDeclaration
+          name="v3"
+          type={<InlineOrReference refkey={r1} />}
+          value="{}"
+        />
+      </StatementList>
     </SourceFile>
   </Output>
 );
